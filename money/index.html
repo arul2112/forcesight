@@ -909,19 +909,6 @@ f="XMLHttpRequest",g._w={},g._w[f]=m[f],g._w[s]=m[s],m[s]&&(m[s]=function(){retu
   padding:10px 12px 18px;background:#fff;
 }
 
-/* the three words track the stacking card currently on top */
-.mb-h2-steps .mb-w{
-  position:relative;display:inline-block;
-  color:var(--ink-2);transition:color .32s ease;
-}
-.mb-h2-steps .mb-w::after{
-  content:"";position:absolute;left:0;right:0;bottom:.06em;height:3px;border-radius:3px;
-  background:linear-gradient(90deg,var(--blue) 0%,var(--blue-2) 100%);
-  transform:scaleX(0);transform-origin:left center;
-  transition:transform .38s cubic-bezier(.4,0,.2,1);
-}
-.mb-h2-steps .mb-w.is-on{color:var(--blue)}
-.mb-h2-steps .mb-w.is-on::after{transform:scaleX(1)}
 .mb-step{
   background:var(--band);border:2px solid var(--band-line);border-radius:var(--r-xl);
   overflow:hidden;padding:40px 48px;
@@ -1286,9 +1273,6 @@ f="XMLHttpRequest",g._w={},g._w[f]=m[f],g._w[s]=m[s],m[s]&&(m[s]=function(){retu
 }
 
 
-/* the specificity guard sets a flat colour on headings; the active word wins */
-.mb .mb-h2-steps .mb-w{color:var(--ink-2)}
-.mb .mb-h2-steps .mb-w.is-on{color:var(--blue)}
 
 .mb .mb-tile-tx h3{font-family:var(--ui);font-weight:700;font-size:18px;line-height:1.3;color:var(--ink-2);margin:0}
 @media (max-width:900px){ .mb .mb-sec-position .mb-h2{font-size:30px} }
@@ -1669,7 +1653,6 @@ f="XMLHttpRequest",g._w={},g._w[f]=m[f],g._w[s]=m[s],m[s]&&(m[s]=function(){retu
   .mb .mb-h1,
   .mb .mb-h2,.mb .mb-h2.is-center,.mb .mb-split .mb-h2,
   .mb-lead.is-center,.mb-close .mb-lead,.mb-close .mb-h2,
-  .mb .mb-h2-steps{text-align:left}
   .mb-eyebrow,.mb-eyebrow.is-center{align-self:flex-start}
   .mb-lead.is-center{margin-left:0;margin-right:0}
   .mb-cta-row.is-center{justify-content:flex-start}
@@ -2235,7 +2218,7 @@ body:not(.rtl) .elementor-27
       <div class="mb-stacking-card">
         <div class="mb-stack-head">
           <p class="mb-eyebrow is-center">A morning on ForceSight</p>
-          <h2 class="mb-h2 is-center mb-h2-steps"><span class="mb-w" data-step="1">Found.</span> <span class="mb-w" data-step="2">Assigned.</span> <span class="mb-w" data-step="3">Fixed.</span> Verified.</h2>
+          <h2 class="mb-h2 is-center">Found. Assigned. Fixed. Verified.</h2>
           <p class="mb-lead is-center"><span class="mb-lg">Jira for your P&amp;L. Every morning, AI ranks your costliest problems with proposed fixes &mdash; your team owns them, and ForceSight Money confirms the recovery in your actual sales before anything closes.</span><span class="mb-sm">Jira for your P&amp;L. AI ranks your costliest problems with proposed fixes, your team owns them, and ForceSight Money confirms the recovery in your actual sales.</span></p>
         </div>
       </div>
@@ -3034,105 +3017,6 @@ render(); total(false);
   window.addEventListener("resize", fit);
   if(document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
   window.addEventListener("load", fit);
-})();
-
-/* ---------- highlight the heading word for the card on top ----------
-   "Ranked", "traceable" and "decidable" light up as their own card becomes
-   the one pinned in front. Driven off the same geometry the sticky cards
-   use, so it stays in step with them at any scroll speed. */
-(function(){
-  var head  = document.querySelector(".mb-h2-steps");
-  var stack = document.getElementById("mb-stacking");
-  if(!head || !stack) return;
-
-  var words = [].slice.call(head.querySelectorAll(".mb-w"));
-  /* cards[0] is the heading itself; the step cards start at index 1 */
-  var cards = [].slice.call(stack.children).slice(1);
-  if(!cards.length) return;
-
-  var ticking = false, last = -1;
-
-  function stickyTop(el){
-    var t = parseFloat(getComputedStyle(el).top);
-    return isNaN(t) ? 0 : t;
-  }
-
-  function update(){
-    ticking = false;
-    var box = stack.getBoundingClientRect();
-    /* nothing to mark while the section is off screen */
-    if(box.bottom < 0 || box.top > window.innerHeight){
-      if(last !== -1){ words.forEach(function(w){ w.classList.remove("is-on"); }); last = -1; }
-      return;
-    }
-    var active = 0;
-    cards.forEach(function(c,i){
-      if(c.getBoundingClientRect().top <= stickyTop(c) + 2) active = i;
-    });
-    if(active === last) return;
-    last = active;
-    words.forEach(function(w,i){ w.classList.toggle("is-on", i === active); });
-  }
-
-  function onScroll(){
-    if(ticking) return;
-    ticking = true;
-    requestAnimationFrame(update);
-  }
-
-  window.addEventListener("scroll", onScroll, {passive:true});
-  window.addEventListener("resize", onScroll);
-  update();
-})();
-
-/* ---------- keep the heading-to-card gap fixed while stacking ----------
-   The first card pins at (heading offset + heading height + gap), so it locks
-   on the same scroll frame the heading does and the gap never closes. */
-(function(){
-  var stack = document.getElementById("mb-stacking");
-  if(!stack) return;
-  var head = stack.firstElementChild;
-  if(!head) return;
-
-  function px(name, fallback){
-    var v = parseFloat(getComputedStyle(stack).getPropertyValue(name));
-    return isNaN(v) ? fallback : v;
-  }
-  function sync(){
-    var top = px("--stack-top", 96), gap = px("--stack-gap", 24);
-    stack.style.setProperty("--stack-card-top", (top + head.offsetHeight + gap) + "px");
-  }
-
-  /* The step cards are taller than the heading, so they drop out of sticky
-     before it does and would ride up through it. Once the last card reaches
-     the heading, walk the heading up with it — keeping the same gap — so the
-     two release together and the whole stack scrolls away as one. */
-  var cards = [].slice.call(stack.children).filter(function(n){
-    return n.classList && n.classList.contains("mb-stacking-card");
-  });
-  var last = cards[cards.length - 1];
-  var ticking = false;
-
-  function track(){
-    ticking = false;
-    if(!last || last === head) return;
-    var base = px("--stack-top", 96), gap = px("--stack-gap", 24);
-    var wanted = last.getBoundingClientRect().top - head.offsetHeight - gap;
-    head.style.top = (wanted < base ? wanted : base) + "px";
-  }
-  function onScroll(){
-    if(ticking) return;
-    ticking = true;
-    requestAnimationFrame(track);
-  }
-
-  function refresh(){ sync(); track(); }
-
-  refresh();
-  window.addEventListener("scroll", onScroll, {passive:true});
-  window.addEventListener("resize", refresh);
-  window.addEventListener("load", refresh);
-  if(document.fonts && document.fonts.ready) document.fonts.ready.then(refresh);
 })();
 
 /* ---------- stacking cards (same observer the home page uses) ---------- */
